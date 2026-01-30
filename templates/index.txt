@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fraud Document Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .card {
+            background: white;
+            width: 420px;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type=file] {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .result {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .genuine { background: #d4edda; color: #155724; }
+        .suspicious { background: #fff3cd; color: #856404; }
+        .fraud { background: #f8d7da; color: #721c24; }
+
+        .meter {
+            height: 18px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .meter-fill {
+            height: 100%;
+            width: 0%;
+        }
+
+        .low { background: green; }
+        .medium { background: orange; }
+        .high { background: red; }
+
+        .details {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        ul {
+            padding-left: 18px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="card">
+    <h2>Fraud Document Detection</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit">Analyze Document</button>
+    </form>
+
+    {% if result %}
+        <div class="result 
+            {% if result == 'GENUINE' %}genuine
+            {% elif result == 'FRAUD' %}fraud
+            {% else %}suspicious{% endif %}">
+            {{ result }}
+        </div>
+
+        <!-- Risk Meter -->
+        <div class="meter">
+            <div class="meter-fill 
+                {% if result == 'FRAUD' %}high
+                {% elif result == 'SUSPICIOUS' %}medium
+                {% else %}low{% endif %}"
+                style="width: {{ (cnn_score * 100) | round(0) }}%;">
+            </div>
+        </div>
+
+        <div class="details">
+            <p><b>Visual Risk Score:</b> {{ (cnn_score * 100) | round(1) }}%</p>
+            <p><b>Visual Analysis:</b> {{ cnn_reason }}</p>
+
+            <p><b>Decision Reason:</b></p>
+            <ul>
+                {% for r in reasons %}
+                    <li>{{ r }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</div>
+</body>
+</html>

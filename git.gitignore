@@ -1,0 +1,10 @@
+uploads/
+__pycache__/
+.ipynb_checkpoints/
+*.h5
+*.zip
+*.tar
+*.csv
+*.jpg
+*.png
+.env
