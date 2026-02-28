@@ -1,145 +1,198 @@
-from flask import Flask, render_template, request
+"""
+app.py — FORENSIQ Flask Web Application
+Full 4-stream pipeline: Visual Forensics + Triple OCR + Semantic Gate + Vendor Enrollment
+Routes: / (verify) · /vendors (enroll) · /history (dashboard) · /metrics (paper figures)
+"""
+
 import os
-import cv2
-import pytesseract
-import re
-from PIL import Image
-import numpy as np
-from tensorflow.keras.models import load_model
+import json
+import time
+from pathlib import Path
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
+
+# ── Base path (always relative to this file) ──────────────────────────────
+BASE_DIR     = Path(__file__).resolve().parent
+UPLOAD_DIR   = BASE_DIR / "uploads"
+REPORTS_DIR  = BASE_DIR / "reports"
+UPLOAD_DIR.mkdir(exist_ok=True)
+REPORTS_DIR.mkdir(exist_ok=True)
+
+# ── Pipeline imports ───────────────────────────────────────────────────────
+from utils.vendor_db       import (lookup_vendor_by_gst, log_bill,
+                                    get_all_vendors, enroll_vendor,
+                                    get_bill_history, get_dashboard_stats,
+                                    get_bills_over_time)
+from utils.preprocessing   import preprocess_image
+from vision.vision_model   import run_visual_forensics
+from ocr.ocr_engine        import run_triple_ocr
+from classifier.fraud_classifier import adaptive_fusion
 
 app = Flask(__name__)
+app.secret_key = "forensiq_secret_2025"
 
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-MODEL_PATH = r"G:\fraud_document_ai\models\fraud_document_cnn.h5"
-model = load_model(MODEL_PATH)
-
-IMG_SIZE = 128
+ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".tiff"}
 
 
-# ---------------- OCR & ENTITY EXTRACTION ----------------
-
-def normalize_numbers(text):
-    text = text.replace(" ", "")
-    text = text.replace(",", ".")
-    return text
+def allowed_file(filename: str) -> bool:
+    return Path(filename).suffix.lower() in ALLOWED_EXT
 
 
-def extract_entities(image_path):
-    img_bgr = cv2.imread(image_path)
-    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-
-    text = pytesseract.image_to_string(Image.fromarray(img_rgb))
-    norm_text = normalize_numbers(text)
-
-    # Isolate summary
-    if "SUMMARY" not in norm_text:
-        return None
-
-    summary_text = norm_text[norm_text.find("SUMMARY"):]
-    lines = summary_text.split("\n")
-
-    # VAT %
-    vat_match = re.search(r'(\d+)%', summary_text)
-    vat_percent = float(vat_match.group(1)) if vat_match else None
-
-    # Total line
-    total_line = [l for l in lines if "Total" in l]
-    if not total_line:
-        return None
-
-    numbers = re.findall(r'\d+\.\d+', total_line[0])
-    if len(numbers) < 3:
-        return None
-
-    net_subtotal = float(numbers[0])
-    vat_amount = float(numbers[1])
-    gross_total = float(numbers[2])
-
-    return net_subtotal, vat_percent, vat_amount, gross_total
-
-
-# ---------------- NUMERIC FRAUD CHECK ----------------
-
-def numeric_fraud_check(net_subtotal, vat_percent, vat_amount, gross_total, tol=1.0):
-    reasons = []
-
-    computed_vat = round(net_subtotal * vat_percent / 100, 2)
-    computed_total = round(net_subtotal + computed_vat, 2)
-
-    if abs(vat_amount - computed_vat) > tol:
-        reasons.append(f"VAT mismatch (expected {computed_vat}, found {vat_amount})")
-
-    if abs(gross_total - computed_total) > tol:
-        reasons.append(f"Total mismatch (expected {computed_total}, found {gross_total})")
-
-    if reasons:
-        return "FRAUD", reasons
-    else:
-        return "GENUINE", ["All financial values are consistent"]
-
-
-# ---------------- CNN VISUAL RISK ----------------
-
-def preprocess_for_cnn(image_path):
-    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    h, w = img.shape
-    roi = img[int(h * 0.7):h, 0:w]  # bottom ROI
-    roi = cv2.resize(roi, (IMG_SIZE, IMG_SIZE))
-    roi = roi / 255.0
-    roi = roi.reshape(1, IMG_SIZE, IMG_SIZE, 1)
-    return roi
-
-
-def interpret_cnn_score(score):
-    if score >= 0.65:
-        return "High visual tampering risk"
-    elif score >= 0.40:
-        return "Moderate visual anomalies detected"
-    else:
-        return "Low visual tampering risk"
-
-
-# ---------------- FLASK ROUTE ----------------
+# ── Route 1: Bill Verification ─────────────────────────────────────────────
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
-    reasons = []
-    cnn_score = None
-    cnn_reason = None
-
     if request.method == "POST":
-        file = request.files["file"]
-        if file:
-            path = os.path.join(UPLOAD_FOLDER, file.filename)
-            file.save(path)
+        file = request.files.get("file")
+        if not file or file.filename == "":
+            flash("No file selected.", "error")
+            return redirect(url_for("index"))
+        if not allowed_file(file.filename):
+            flash("Unsupported file type. Please upload JPG, PNG or BMP.", "error")
+            return redirect(url_for("index"))
 
-            entities = extract_entities(path)
+        # Save upload
+        img_path = str(UPLOAD_DIR / file.filename)
+        file.save(img_path)
 
-            if entities:
-                net_sub, vat_p, vat_amt, gross = entities
-                result, reasons = numeric_fraud_check(
-                    net_sub, vat_p, vat_amt, gross
-                )
-            else:
-                result = "SUSPICIOUS"
-                reasons = ["Unable to extract financial entities"]
+        start_time = time.time()
 
-            # CNN visual evidence
-            roi = preprocess_for_cnn(path)
-            cnn_score = float(model.predict(roi)[0][0])
-            cnn_reason = interpret_cnn_score(cnn_score)
+        try:
+            # STREAM 1 — Visual Forensics (6 signals)
+            visual  = run_visual_forensics(img_path)
 
-    return render_template(
-        "index.html",
-        result=result,
-        reasons=reasons,
-        cnn_score=cnn_score,
-        cnn_reason=cnn_reason
-    )
+            # STREAM 2 — Triple OCR Consensus
+            ocr     = run_triple_ocr(img_path)
 
+            # Vendor lookup via extracted GST
+            gst     = ocr.get("gst_number", "")
+            vendor  = lookup_vendor_by_gst(gst) if gst else None
+            bill_fmt= vendor.get("bill_format", "Indian GST") if vendor else "Indian GST"
+
+            # STREAM 3 + 4 — Adaptive Fusion (semantic gate + vendor context)
+            fusion  = adaptive_fusion(visual, ocr, vendor, bill_format=bill_fmt)
+
+            time_taken = round(time.time() - start_time, 2)
+
+            # Log to history
+            log_bill(
+                company_name   = fusion["vendor_name"],
+                gst_found      = gst,
+                bill_book_id   = fusion.get("invoice_number", ""),
+                verdict        = fusion["verdict"],
+                fraud_score    = fusion["fraud_score"],
+                visual_score   = fusion["visual_score"],
+                ocr_confidence = fusion["ocr_confidence"],
+                time_taken_sec = time_taken,
+            )
+
+            # Make heatmap URL relative for template
+            heatmap_path = visual.get("ela_heatmap_path", "")
+            heatmap_url  = None
+            if heatmap_path and os.path.exists(heatmap_path):
+                heatmap_url = "/uploads/heatmaps/" + Path(heatmap_path).name
+
+            result = {
+                "verdict":      fusion["verdict"],
+                "fraud_score":  fusion["fraud_score"],
+                "time_taken":   time_taken,
+                "visual":       visual,
+                "ocr":          ocr,
+                "fusion":       fusion,
+                "heatmap_url":  heatmap_url,
+                "filename":     file.filename,
+            }
+
+        except Exception as e:
+            flash(f"Processing error: {str(e)}", "error")
+            return redirect(url_for("index"))
+
+    return render_template("index.html", result=result)
+
+
+# ── Route 2: Vendor Enrollment ─────────────────────────────────────────────
+
+@app.route("/vendors", methods=["GET", "POST"])
+def vendors():
+    if request.method == "POST":
+        company_name = request.form.get("company_name", "").strip()
+        gst_raw      = request.form.get("gst_numbers", "").strip()
+        amount_min   = request.form.get("amount_min", 0)
+        amount_max   = request.form.get("amount_max", 9999999)
+        bill_format  = request.form.get("bill_format", "Indian GST")
+        notes        = request.form.get("notes", "").strip()
+
+        if not company_name or not gst_raw:
+            flash("Company name and at least one GST number are required.", "error")
+            return redirect(url_for("vendors"))
+
+        gst_list = [g.strip().upper() for g in gst_raw.replace("\n", ",").split(",") if g.strip()]
+        try:
+            enroll_vendor(
+                company_name = company_name,
+                gst_list     = gst_list,
+                amount_min   = float(amount_min),
+                amount_max   = float(amount_max),
+                bill_format  = bill_format,
+                notes        = notes,
+            )
+            flash(f"✅ '{company_name}' enrolled with {len(gst_list)} GST number(s).", "success")
+        except Exception as e:
+            flash(f"Enrollment error: {str(e)}", "error")
+
+        return redirect(url_for("vendors"))
+
+    all_vendors = get_all_vendors()
+    return render_template("vendors.html", vendors=all_vendors)
+
+
+# ── Route 3: Bill History Dashboard ────────────────────────────────────────
+
+@app.route("/history")
+def history():
+    bills      = get_bill_history(limit=200)
+    stats      = get_dashboard_stats()
+    over_time  = get_bills_over_time()
+    return render_template("history.html",
+                           bills=bills, stats=stats,
+                           over_time_json=json.dumps(over_time))
+
+
+# ── Route 4: Model Metrics (screenshot-ready for IEEE paper) ───────────────
+
+@app.route("/metrics")
+def metrics():
+    metrics_path = REPORTS_DIR / "metrics.json"
+    stats = {}
+    if metrics_path.exists():
+        with open(str(metrics_path), "r") as f:
+            stats = json.load(f)
+
+    # Check which report images exist
+    roc_exists     = (REPORTS_DIR / "roc_curve.png").exists()
+    cm_exists      = (REPORTS_DIR / "confusion_matrix.png").exists()
+    ablation_exists= (REPORTS_DIR / "ablation_table.png").exists()
+
+    return render_template("metrics.html",
+                           stats=stats,
+                           roc_exists=roc_exists,
+                           cm_exists=cm_exists,
+                           ablation_exists=ablation_exists)
+
+
+# ── Static: serve heatmaps and reports ────────────────────────────────────
+
+@app.route("/uploads/heatmaps/<filename>")
+def heatmap_file(filename):
+    return send_from_directory(str(UPLOAD_DIR / "heatmaps"), filename)
+
+
+@app.route("/reports/<filename>")
+def report_file(filename):
+    return send_from_directory(str(REPORTS_DIR), filename)
+
+
+# ── Run ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="127.0.0.1", port=5000)

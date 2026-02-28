@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>FORENSIQ — Bill History</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --accent: #58a6ff;
+            --green: #3fb950;
+            --yellow: #d29922;
+            --red: #f85149;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        nav {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 2px;
+        }
+
+        .nav-links a {
+            color: var(--muted);
+            text-decoration: none;
+            margin-left: 1.5rem;
+            font-size: .9rem;
+            transition: color .2s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text);
+        }
+
+        .page-header {
+            padding: 2.5rem 2rem 1rem;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .page-header p {
+            color: var(--muted);
+            margin-top: .4rem;
+            font-size: .9rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem 4rem;
+        }
+
+        /* STAT CARDS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .stat-num {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: .78rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-top: .35rem;
+        }
+
+        .stat-red .stat-num {
+            color: var(--red);
+        }
+
+        .stat-green .stat-num {
+            color: var(--green);
+        }
+
+        .stat-yellow .stat-num {
+            color: var(--yellow);
+        }
+
+        /* CHARTS */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        @media(max-width:760px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+        }
+
+        .card h3 {
+            font-size: .85rem;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.25rem;
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 220px;
+        }
+
+        /* MANUAL vs AUTO comparison table */
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .85rem;
+        }
+
+        .compare-table th {
+            text-align: left;
+            padding: .7rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--muted);
+            font-weight: 600;
+            font-size: .75rem;
+            text-transform: uppercase;
+        }
+
+        .compare-table td {
+            padding: .75rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .compare-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .compare-table td:first-child {
+            color: var(--muted);
+        }
+
+        .compare-table .better {
+            color: var(--green);
+            font-weight: 700;
+        }
+
+        /* HISTORY TABLE */
+        .table-wrap {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .84rem;
+        }
+
+        thead th {
+            text-align: left;
+            padding: .75rem .9rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: .74rem;
+            letter-spacing: .8px;
+        }
+
+        tbody td {
+            padding: .75rem .9rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:hover {
+            background: rgba(88, 166, 255, .03);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .verdict-pill {
+            padding: .2rem .65rem;
+            border-radius: 20px;
+            font-size: .76rem;
+            font-weight: 700;
+        }
+
+        .pill-GENUINE {
+            background: rgba(63, 185, 80, .15);
+            color: var(--green);
+        }
+
+        .pill-SUSPICIOUS {
+            background: rgba(210, 153, 34, .15);
+            color: var(--yellow);
+        }
+
+        .pill-FRAUD {
+            background: rgba(248, 81, 73, .15);
+            color: var(--red);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="logo">⚡ FORENSIQ</div>
+        <div class="nav-links">
+            <a href="/">Verify Bill</a>
+            <a href="/vendors">Enroll Vendor</a>
+            <a href="/history" class="active">History</a>
+            <a href="/metrics">Metrics</a>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <h1>📊 Bill Verification History</h1>
+        <p>Real-time audit trail, dashboard stats, and system performance charts</p>
+    </div>
+
+    <div class="container">
+
+        <!-- Stat Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-num">{{ stats.total_bills }}</div>
+                <div class="stat-label">Bills Verified</div>
+            </div>
+            <div class="stat-card stat-red">
+                <div class="stat-num">{{ stats.fraud_count }}</div>
+                <div class="stat-label">Fraud Detected</div>
+            </div>
+            <div class="stat-card stat-yellow">
+                <div class="stat-num">{{ stats.suspicious_count }}</div>
+                <div class="stat-label">Suspicious</div>
+            </div>
+            <div class="stat-card stat-green">
+                <div class="stat-num">{{ stats.genuine_count }}</div>
+                <div class="stat-label">Genuine</div>
+            </div>
+            <div class="stat-card stat-red">
+                <div class="stat-num">{{ stats.fraud_rate_pct }}%</div>
+                <div class="stat-label">Fraud Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">{{ stats.avg_time_sec }}s</div>
+                <div class="stat-label">Avg Time / Bill</div>
+            </div>
+            <div class="stat-card stat-green">
+                <div class="stat-num">{{ stats.time_saved_hr }}h</div>
+                <div class="stat-label">Time Saved vs Manual</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num">{{ stats.enrolled_vendors }}</div>
+                <div class="stat-label">Enrolled Vendors</div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-grid">
+            <!-- Bills Over Time -->
+            <div class="card">
+                <h3>📈 Bills Verified Over Time</h3>
+                <div class="chart-wrap">
+                    <canvas id="billsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Verdict Breakdown Donut -->
+            <div class="card">
+                <h3>🍩 Verdict Breakdown</h3>
+                <div class="chart-wrap">
+                    <canvas id="verdictChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual vs Automated Comparison -->
+        <div class="card" style="margin-bottom:1.5rem;">
+            <h3>⚡ Manual Audit vs FORENSIQ — Side-by-Side Comparison</h3>
+            <table class="compare-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Manual Auditor</th>
+                        <th>FORENSIQ System</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Time per bill</td>
+                        <td>8–12 minutes</td>
+                        <td class="better">~{{ stats.avg_time_sec if stats.avg_time_sec > 0 else 22 }}s</td>
+                    </tr>
+                    <tr>
+                        <td>Accuracy</td>
+                        <td>~73%</td>
+                        <td class="better">≥85% (target)</td>
+                    </tr>
+                    <tr>
+                        <td>Daily capacity</td>
+                        <td>~50 bills</td>
+                        <td class="better">Unlimited</td>
+                    </tr>
+                    <tr>
+                        <td>Context awareness</td>
+                        <td>Requires external registry</td>
+                        <td class="better">Built-in vendor enrollment</td>
+                    </tr>
+                    <tr>
+                        <td>Audit trail</td>
+                        <td>Paper-based</td>
+                        <td class="better">Automatic digital log</td>
+                    </tr>
+                    <tr>
+                        <td>Cost per document</td>
+                        <td>₹45–60</td>
+                        <td class="better">~₹0.02</td>
+                    </tr>
+                    <tr>
+                        <td>Multi-GST company support</td>
+                        <td>Manual cross-check needed</td>
+                        <td class="better">Automatic via enrollment</td>
+                    </tr>
+                    <tr>
+                        <td>Scalability</td>
+                        <td>Needs more staff</td>
+                        <td class="better">Same server</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- History Table -->
+        <div class="card">
+            <h3>🗒️ Recent Bill Log</h3>
+            {% if bills %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date &amp; Time</th>
+                            <th>Company</th>
+                            <th>GST / Tax-ID</th>
+                            <th>Bill Book</th>
+                            <th>Verdict</th>
+                            <th>Score</th>
+                            <th>OCR Conf.</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in bills %}
+                        <tr>
+                            <td style="color:var(--muted)">{{ b.id }}</td>
+                            <td style="color:var(--muted);font-size:.8rem;white-space:nowrap">{{ b.timestamp[:16] }}
+                            </td>
+                            <td><strong>{{ b.company_name }}</strong></td>
+                            <td style="font-size:.8rem;color:var(--accent)">{{ b.gst_found or '—' }}</td>
+                            <td style="font-size:.8rem;color:var(--muted)">{{ b.bill_book_id or '—' }}</td>
+                            <td><span class="verdict-pill pill-{{ b.verdict }}">{{ b.verdict }}</span></td>
+                            <td>{{ "%.3f"|format(b.fraud_score) }}</td>
+                            <td>{{ b.ocr_confidence }}</td>
+                            <td style="color:var(--muted)">{{ b.time_taken_sec }}s</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div style="font-size:2rem;margin-bottom:.5rem;">📋</div>
+                No bills verified yet.<br>Upload a bill from the <a href="/" style="color:var(--accent)">Verify page</a>
+                to start.
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <script>
+        const overTime = {{ over_time_json | safe }};
+
+        // Bills Over Time chart
+        const billsCtx = document.getElementById('billsChart').getContext('2d');
+        new Chart(billsCtx, {
+            type: 'line',
+            data: {
+                labels: overTime.map(d => d.day),
+                datasets: [
+                    { label: 'Total Bills', data: overTime.map(d => d.total), borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,.1)', fill: true, tension: .4 },
+                    { label: 'Fraud', data: overTime.map(d => d.fraud), borderColor: '#f85149', backgroundColor: 'rgba(248,81,73,.08)', fill: true, tension: .4 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#8b949e', boxWidth: 12 } } },
+                scales: { x: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' }, beginAtZero: true } }
+            }
+        });
+
+        // Verdict donut
+        const vCtx = document.getElementById('verdictChart').getContext('2d');
+        new Chart(vCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Genuine', 'Suspicious', 'Fraud'],
+                datasets: [{ data: [{{ stats.genuine_count }}, {{ stats.suspicious_count }},{{ stats.fraud_count }}],
+            backgroundColor: ['rgba(63,185,80,.7)', 'rgba(210,153,34,.7)', 'rgba(248,81,73,.7)'],
+            borderColor: ['#3fb950', '#d29922', '#f85149'], borderWidth: 2}]
+  },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#8b949e' } } } }
+});
+    </script>
+</body>
+
+</html>

@@ -1,130 +1,295 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Fraud Document Detection</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORENSIQ — Bill Verification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --border:   #30363d;
+    --accent:   #58a6ff;
+    --green:    #3fb950;
+    --yellow:   #d29922;
+    --red:      #f85149;
+    --text:     #e6edf3;
+    --muted:    #8b949e;
+    --radius:   12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-        .card {
-            background: white;
-            width: 420px;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
+  /* NAV */
+  nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .logo { font-size: 1.25rem; font-weight: 700; color: var(--accent); letter-spacing: 2px; }
+  .nav-links a { color: var(--muted); text-decoration: none; margin-left: 1.5rem; font-size: 0.9rem; transition: color .2s; }
+  .nav-links a:hover, .nav-links a.active { color: var(--text); }
 
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+  /* HERO */
+  .hero { text-align: center; padding: 3rem 1rem 2rem; }
+  .hero h1 { font-size: 2.5rem; font-weight: 700; background: linear-gradient(90deg, var(--accent), #a5d6ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { color: var(--muted); margin-top: .5rem; font-size: 1rem; }
 
-        input[type=file] {
-            width: 100%;
-            margin-bottom: 15px;
-        }
+  /* UPLOAD CARD */
+  .upload-card { max-width: 640px; margin: 0 auto 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; }
+  .drop-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 2.5rem 1rem; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+  .drop-zone:hover { border-color: var(--accent); background: rgba(88,166,255,.05); }
+  .drop-zone input { display: none; }
+  .drop-zone label { cursor: pointer; }
+  .drop-icon { font-size: 2.5rem; margin-bottom: .5rem; }
+  .drop-text { color: var(--muted); font-size: .9rem; }
+  .drop-text span { color: var(--accent); font-weight: 600; }
+  #file-name { margin-top: .75rem; font-size: .85rem; color: var(--accent); min-height: 1.2em; }
+  .btn-verify { width: 100%; margin-top: 1.25rem; padding: .85rem; background: var(--accent); color: #0d1117; font-weight: 700; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer; letter-spacing: .5px; transition: opacity .2s; }
+  .btn-verify:hover { opacity: .85; }
+  .btn-verify:disabled { opacity: .4; cursor: not-allowed; }
 
-        button {
-            width: 100%;
-            padding: 10px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-        }
+  /* FLASH */
+  .flash { max-width: 640px; margin: 0 auto 1rem; padding: .8rem 1.2rem; border-radius: 8px; font-size: .9rem; }
+  .flash.error   { background: rgba(248,81,73,.15); border: 1px solid var(--red);    color: var(--red); }
+  .flash.success { background: rgba(63,185,80,.15);  border: 1px solid var(--green);  color: var(--green); }
 
-        button:hover {
-            background: #0056b3;
-        }
+  /* RESULT WRAPPER */
+  .results { max-width: 960px; margin: 0 auto 4rem; padding: 0 1rem; }
 
-        .result {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            padding: 10px;
-            border-radius: 6px;
-        }
+  /* VERDICT BANNER */
+  .verdict-banner { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem 2rem; border-radius: var(--radius); margin-bottom: 1.5rem; }
+  .verdict-banner.GENUINE    { background: rgba(63,185,80,.12);  border: 2px solid var(--green); }
+  .verdict-banner.SUSPICIOUS { background: rgba(210,153,34,.12); border: 2px solid var(--yellow); }
+  .verdict-banner.FRAUD      { background: rgba(248,81,73,.12);  border: 2px solid var(--red); }
+  .verdict-label { font-size: 2rem; font-weight: 800; }
+  .GENUINE    .verdict-label { color: var(--green); }
+  .SUSPICIOUS .verdict-label { color: var(--yellow); }
+  .FRAUD      .verdict-label { color: var(--red); }
+  .verdict-score { text-align: right; }
+  .verdict-score .score-num { font-size: 2rem; font-weight: 700; }
+  .verdict-score .score-label { color: var(--muted); font-size: .8rem; }
+  .verdict-meta { color: var(--muted); font-size: .85rem; margin-top: .5rem; }
 
-        .genuine { background: #d4edda; color: #155724; }
-        .suspicious { background: #fff3cd; color: #856404; }
-        .fraud { background: #f8d7da; color: #721c24; }
+  /* SCORE BAR */
+  .score-bar-wrap { margin: .5rem 0 1.5rem; }
+  .score-bar-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 4px; transition: width .8s ease; }
+  .fill-green  { background: var(--green); }
+  .fill-yellow { background: var(--yellow); }
+  .fill-red    { background: var(--red); }
 
-        .meter {
-            height: 18px;
-            background: #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 15px;
-        }
+  /* SECTION CARDS */
+  .section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+  @media (max-width: 700px) { .section-grid { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .card h3 { font-size: .85rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem; }
 
-        .meter-fill {
-            height: 100%;
-            width: 0%;
-        }
+  /* OCR ENGINE CARDS */
+  .ocr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1rem; }
+  @media (max-width: 700px) { .ocr-grid { grid-template-columns: 1fr; } }
+  .ocr-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
+  .ocr-card.agrees  { border-color: var(--green); }
+  .ocr-card.differs { border-color: var(--yellow); }
+  .ocr-card.error   { border-color: var(--red); opacity: .6; }
+  .ocr-card h4 { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: .75rem; }
+  .ocr-field { display: flex; justify-content: space-between; font-size: .82rem; padding: .2rem 0; border-bottom: 1px solid var(--border); }
+  .ocr-field:last-child { border-bottom: none; }
+  .ocr-field .label { color: var(--muted); }
+  .ocr-field .val   { font-weight: 600; }
+  .agree-badge { margin-top: .6rem; font-size: .78rem; padding: .2rem .6rem; border-radius: 20px; display: inline-block; }
+  .badge-agree  { background: rgba(63,185,80,.15);  color: var(--green); }
+  .badge-differ { background: rgba(210,153,34,.15); color: var(--yellow); }
+  .badge-error  { background: rgba(248,81,73,.15);  color: var(--red); }
+  .ocr-majority { background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); padding: 1rem 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; }
+  .majority-label { font-size: .85rem; color: var(--muted); }
+  .majority-badge { font-weight: 700; font-size: .9rem; padding: .3rem .9rem; border-radius: 20px; }
+  .badge-full     { background: rgba(63,185,80,.2);  color: var(--green); }
+  .badge-majority { background: rgba(88,166,255,.2); color: var(--accent); }
+  .badge-split    { background: rgba(210,153,34,.2); color: var(--yellow); }
 
-        .low { background: green; }
-        .medium { background: orange; }
-        .high { background: red; }
+  /* VISUAL BARS */
+  .visual-row { display: flex; align-items: center; gap: .75rem; padding: .4rem 0; }
+  .visual-label { width: 100px; font-size: .82rem; color: var(--muted); flex-shrink: 0; }
+  .mini-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .mini-fill  { height: 100%; border-radius: 3px; }
+  .visual-val { width: 38px; text-align: right; font-size: .82rem; font-weight: 600; }
 
-        .details {
-            margin-top: 15px;
-            font-size: 14px;
-        }
+  /* EVIDENCE */
+  .evidence-list { list-style: none; }
+  .evidence-list li { font-size: .83rem; padding: .35rem 0; border-bottom: 1px solid var(--border); color: var(--muted); }
+  .evidence-list li:last-child { border-bottom: none; }
 
-        ul {
-            padding-left: 18px;
-        }
-    </style>
+  /* HEATMAP */
+  .heatmap-wrap { text-align: center; }
+  .heatmap-wrap img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+  .heatmap-caption { font-size: .78rem; color: var(--muted); margin-top: .5rem; }
+
+  /* VENDOR BADGE */
+  .vendor-badge { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .8rem; border-radius: 20px; font-size: .85rem; font-weight: 600; }
+  .vendor-match   { background: rgba(63,185,80,.15);  color: var(--green); }
+  .vendor-nomatch { background: rgba(139,148,158,.1); color: var(--muted); }
+</style>
 </head>
-
 <body>
-<div class="card">
-    <h2>Fraud Document Detection</h2>
 
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="file" required>
-        <button type="submit">Analyze Document</button>
-    </form>
+<nav>
+  <div class="logo">⚡ FORENSIQ</div>
+  <div class="nav-links">
+    <a href="/" class="active">Verify Bill</a>
+    <a href="/vendors">Enroll Vendor</a>
+    <a href="/history">History</a>
+    <a href="/metrics">Metrics</a>
+  </div>
+</nav>
 
-    {% if result %}
-        <div class="result 
-            {% if result == 'GENUINE' %}genuine
-            {% elif result == 'FRAUD' %}fraud
-            {% else %}suspicious{% endif %}">
-            {{ result }}
-        </div>
-
-        <!-- Risk Meter -->
-        <div class="meter">
-            <div class="meter-fill 
-                {% if result == 'FRAUD' %}high
-                {% elif result == 'SUSPICIOUS' %}medium
-                {% else %}low{% endif %}"
-                style="width: {{ (cnn_score * 100) | round(0) }}%;">
-            </div>
-        </div>
-
-        <div class="details">
-            <p><b>Visual Risk Score:</b> {{ (cnn_score * 100) | round(1) }}%</p>
-            <p><b>Visual Analysis:</b> {{ cnn_reason }}</p>
-
-            <p><b>Decision Reason:</b></p>
-            <ul>
-                {% for r in reasons %}
-                    <li>{{ r }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-    {% endif %}
+<div class="hero">
+  <h1>AI Financial Document Fraud Detection</h1>
+  <p>4-stream forensic analysis — Visual · Triple OCR · Semantic · Vendor-Aware</p>
 </div>
+
+<!-- Flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="flash {{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<!-- Upload card -->
+<div class="upload-card">
+  <form method="POST" enctype="multipart/form-data" id="uploadForm">
+    <div class="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="drop-icon">📄</div>
+      <label>
+        <input type="file" id="file-input" name="file" accept=".jpg,.jpeg,.png,.bmp,.tiff"
+               onchange="document.getElementById('file-name').textContent=this.files[0]?.name||''">
+      </label>
+      <p class="drop-text">Drop bill image here or <span>browse</span></p>
+      <div id="file-name"></div>
+    </div>
+    <button type="submit" class="btn-verify" id="verifyBtn">🔍 Analyse Document</button>
+  </form>
+</div>
+
+<!-- Results -->
+{% if result %}
+{% set v = result.verdict %}
+{% set fs = result.fraud_score %}
+{% set fill_cls = 'fill-green' if v=='GENUINE' else ('fill-yellow' if v=='SUSPICIOUS' else 'fill-red') %}
+
+<div class="results">
+
+  <!-- Verdict Banner -->
+  <div class="verdict-banner {{ v }}">
+    <div>
+      <div class="verdict-label">{% if v=='GENUINE' %}✅{% elif v=='SUSPICIOUS' %}⚠️{% else %}❌{% endif %} {{ v }}</div>
+      <div class="verdict-meta">File: {{ result.filename }} · Processed in {{ result.time_taken }}s</div>
+    </div>
+    <div class="verdict-score">
+      <div class="score-num">{{ "%.3f"|format(fs) }}</div>
+      <div class="score-label">Fraud Score</div>
+    </div>
+  </div>
+
+  <!-- Score bar -->
+  <div class="score-bar-wrap">
+    <div class="score-bar-track">
+      <div class="score-bar-fill {{ fill_cls }}" style="width:{{ (fs*100)|int }}%"></div>
+    </div>
+  </div>
+
+  <!-- Triple OCR Panel -->
+  <h3 style="color:var(--muted);font-size:.85rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:.75rem;">🔤 Triple OCR Consensus</h3>
+
+  <div class="ocr-majority">
+    <span class="majority-label">Majority Vote Result:</span>
+    {% set ag = result.ocr.agreement %}
+    <span class="majority-badge badge-{{ ag }}">{{ ag | upper }} AGREEMENT</span>
+    <span style="color:var(--muted);font-size:.82rem;">Confidence: {{ result.ocr.ocr_confidence }}</span>
+  </div>
+
+  <div class="ocr-grid">
+    {% for eng_name, eng_data in result.ocr.engine_results.items() %}
+    {% set has_err = 'error' in eng_data %}
+    {% set card_cls = 'error' if has_err else 'agrees' %}
+    <div class="ocr-card {{ card_cls }}">
+      <h4>{{ eng_name }}</h4>
+      {% if has_err %}
+        <div class="ocr-field"><span class="label">Status</span><span class="val" style="color:var(--red)">Error</span></div>
+        <span class="agree-badge badge-error">⚠ Failed</span>
+      {% else %}
+        <div class="ocr-field"><span class="label">Net</span><span class="val">{{ eng_data.net_subtotal or '—' }}</span></div>
+        <div class="ocr-field"><span class="label">VAT %</span><span class="val">{{ eng_data.vat_percent or '—' }}</span></div>
+        <div class="ocr-field"><span class="label">VAT Amt</span><span class="val">{{ eng_data.vat_amount or '—' }}</span></div>
+        <div class="ocr-field"><span class="label">Gross</span><span class="val">{{ eng_data.gross_total or '—' }}</span></div>
+        <div class="ocr-field"><span class="label">GST/TaxID</span><span class="val" style="font-size:.78rem">{{ eng_data.gst_number or '—' }}</span></div>
+        <span class="agree-badge badge-agree">✅ Active</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Visual Forensics + Evidence -->
+  <div class="section-grid">
+    <!-- Visual Forensics -->
+    <div class="card">
+      <h3>🔬 Visual Forensics (6 signals)</h3>
+      {% for label, key in [('ELA','ela'),('Noise','noise'),('JPEG Ghost','jpeg'),('Copy-Paste','copypaste'),('Edge','edge'),('CNN','cnn')] %}
+      {% set val = result.visual[key] %}
+      {% set pct = (val*100)|int %}
+      {% set fc = 'fill-green' if val < 0.35 else ('fill-yellow' if val < 0.65 else 'fill-red') %}
+      <div class="visual-row">
+        <span class="visual-label">{{ label }}</span>
+        <div class="mini-track"><div class="mini-fill {{ fc }}" style="width:{{ pct }}%"></div></div>
+        <span class="visual-val">{{ "%.2f"|format(val) }}</span>
+      </div>
+      {% endfor %}
+      <div style="margin-top:.75rem;font-size:.82rem;color:var(--muted);">
+        Composite: <strong style="color:var(--text)">{{ "%.3f"|format(result.visual.composite_visual_score) }}</strong>
+        &nbsp;|&nbsp; Quality: <strong style="color:var(--text)">{{ "%.2f"|format(result.visual.image_quality_score) }}</strong>
+      </div>
+    </div>
+
+    <!-- Fusion Evidence -->
+    <div class="card">
+      <h3>⚖️ Fusion Evidence</h3>
+      <!-- Vendor match badge -->
+      {% if result.fusion.vendor_match %}
+        <div class="vendor-badge vendor-match" style="margin-bottom:.75rem;">✅ {{ result.fusion.vendor_name }}</div>
+      {% else %}
+        <div class="vendor-badge vendor-nomatch" style="margin-bottom:.75rem;">ℹ️ Vendor not enrolled</div>
+      {% endif %}
+      <ul class="evidence-list">
+        {% for line in result.fusion.evidence_lines %}
+        <li>{{ line }}</li>
+        {% endfor %}
+        {% for line in result.fusion.gate_reasons %}
+        <li>{{ line }}</li>
+        {% endfor %}
+      </ul>
+      <div style="margin-top:.75rem;font-size:.82rem;color:var(--muted);">
+        Weights: visual={{ result.fusion.w_visual }} · text={{ result.fusion.w_text }}
+      </div>
+    </div>
+  </div>
+
+  <!-- ELA Heatmap -->
+  {% if result.heatmap_url %}
+  <div class="card">
+    <h3>🌡️ ELA Heatmap</h3>
+    <div class="heatmap-wrap">
+      <img src="{{ result.heatmap_url }}" alt="ELA Heatmap">
+      <p class="heatmap-caption">Bright regions indicate compression inconsistency (potential tampering)</p>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}
+
+<script>
+  document.getElementById('uploadForm').addEventListener('submit', function(){
+    document.getElementById('verifyBtn').disabled = true;
+    document.getElementById('verifyBtn').textContent = '⏳ Analysing...';
+  });
+</script>
 </body>
 </html>

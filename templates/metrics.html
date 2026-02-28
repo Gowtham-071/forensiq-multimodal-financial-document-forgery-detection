@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>FORENSIQ — Model Metrics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --accent: #58a6ff;
+            --green: #3fb950;
+            --yellow: #d29922;
+            --red: #f85149;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        nav {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 2px;
+        }
+
+        .nav-links a {
+            color: var(--muted);
+            text-decoration: none;
+            margin-left: 1.5rem;
+            font-size: .9rem;
+            transition: color .2s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text);
+        }
+
+        .page-header {
+            padding: 2.5rem 2rem 1.5rem;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .page-header p {
+            color: var(--muted);
+            margin-top: .4rem;
+            font-size: .9rem;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 1.5rem 4rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .card h3 {
+            font-size: .85rem;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.25rem;
+        }
+
+        /* BIG METRIC CARDS */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media(max-width:700px) {
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .metric-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .metric-num {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1;
+        }
+
+        .metric-label {
+            font-size: .78rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-top: .5rem;
+        }
+
+        .metric-sub {
+            font-size: .76rem;
+            color: var(--muted);
+            margin-top: .25rem;
+        }
+
+        /* PLOTS */
+        .plots-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        @media(max-width:700px) {
+            .plots-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .plot-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+        }
+
+        .plot-card h3 {
+            font-size: .85rem;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        .plot-card img {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .plot-placeholder {
+            background: #161b22;
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 3rem 1rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: .85rem;
+        }
+
+        /* ABLATION TABLE */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .85rem;
+        }
+
+        thead th {
+            text-align: left;
+            padding: .7rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--muted);
+            font-weight: 600;
+            font-size: .75rem;
+            text-transform: uppercase;
+        }
+
+        tbody td {
+            padding: .75rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: rgba(88, 166, 255, .03);
+        }
+
+        .highlight-row td {
+            color: var(--green);
+            font-weight: 700;
+        }
+
+        .note {
+            font-size: .78rem;
+            color: var(--muted);
+            margin-top: .75rem;
+        }
+
+        .badge-run {
+            display: inline-block;
+            background: rgba(248, 81, 73, .12);
+            color: var(--red);
+            padding: .15rem .5rem;
+            border-radius: 4px;
+            font-size: .75rem;
+        }
+
+        .badge-ready {
+            display: inline-block;
+            background: rgba(63, 185, 80, .12);
+            color: var(--green);
+            padding: .15rem .5rem;
+            border-radius: 4px;
+            font-size: .75rem;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="logo">⚡ FORENSIQ</div>
+        <div class="nav-links">
+            <a href="/">Verify Bill</a>
+            <a href="/vendors">Enroll Vendor</a>
+            <a href="/history">History</a>
+            <a href="/metrics" class="active">Metrics</a>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <h1>📐 Model Performance Metrics</h1>
+        <p>IEEE paper figures — run <code
+                style="background:#161b22;padding:.1rem .4rem;border-radius:4px;color:var(--accent)">notebooks/16_ieee_evaluation.ipynb</code>
+            to generate results</p>
+    </div>
+
+    <div class="container">
+
+        <!-- Key Metric Cards -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-num">{{ stats.accuracy_pct | default('—') }}{% if stats.accuracy_pct %}<span
+                        style="font-size:1.5rem">%</span>{% endif %}</div>
+                <div class="metric-label">Accuracy</div>
+                <div class="metric-sub">Target: ≥85%</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-num">{{ stats.f1_score | default('—') }}</div>
+                <div class="metric-label">F1 Score</div>
+                <div class="metric-sub">Target: ≥0.83</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-num">{{ stats.precision | default('—') }}</div>
+                <div class="metric-label">Precision</div>
+                <div class="metric-sub">Fraud class</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-num">{{ stats.recall | default('—') }}</div>
+                <div class="metric-label">Recall</div>
+                <div class="metric-sub">Fraud class</div>
+            </div>
+        </div>
+
+        {% if not stats %}
+        <div class="card" style="text-align:center;padding:2rem;">
+            <div style="font-size:2rem;margin-bottom:.5rem;">📓</div>
+            <p style="color:var(--muted);">No evaluation results yet.</p>
+            <p style="color:var(--muted);font-size:.9rem;margin-top:.5rem;">Run <strong
+                    style="color:var(--accent)">notebooks/16_ieee_evaluation.ipynb</strong> to generate the ROC curve,
+                confusion matrix, and ablation table.</p>
+        </div>
+        {% endif %}
+
+        <!-- ROC Curve + Confusion Matrix -->
+        <div class="plots-grid">
+            <div class="plot-card">
+                <h3>📉 ROC Curve (AUC = {{ stats.auc_roc | default('—') }})</h3>
+                {% if roc_exists %}
+                <img src="/reports/roc_curve.png" alt="ROC Curve">
+                {% else %}
+                <div class="plot-placeholder">
+                    <span class="badge-run">Not yet generated</span><br><br>
+                    Run notebook 16 to produce this figure<br>
+                    → saved to <code>reports/roc_curve.png</code>
+                </div>
+                {% endif %}
+            </div>
+            <div class="plot-card">
+                <h3>🔲 Confusion Matrix</h3>
+                {% if cm_exists %}
+                <img src="/reports/confusion_matrix.png" alt="Confusion Matrix">
+                {% else %}
+                <div class="plot-placeholder">
+                    <span class="badge-run">Not yet generated</span><br><br>
+                    Run notebook 16 to produce this figure<br>
+                    → saved to <code>reports/confusion_matrix.png</code>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Ablation Table -->
+        <div class="card">
+            <h3>🔬 Ablation Study — Component Contribution (Table II for IEEE paper)</h3>
+            {% if ablation_exists %}
+            <img src="/reports/ablation_table.png" alt="Ablation Study" style="width:100%;border-radius:8px;">
+            {% else %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>System Variant</th>
+                        <th>Accuracy</th>
+                        <th>F1 Score</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>AUC-ROC</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Visual-only (5 detectors + CNN)</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td>OCR-only (Triple consensus)</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td>Visual + OCR (no vendor context)</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td>Visual + OCR + Semantic Gate</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                    <tr class="highlight-row">
+                        <td>✅ Full FORENSIQ (all streams)</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>—</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="note">Run <strong>notebooks/16_ieee_evaluation.ipynb</strong> to populate this table with real
+                metrics.</div>
+            {% endif %}
+        </div>
+
+        <!-- Per-class breakdown -->
+        {% if stats.class_report %}
+        <div class="card">
+            <h3>📋 Per-Class Metrics</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Class</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1-Score</th>
+                        <th>Support</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cls, m in stats.class_report.items() %}
+                    <tr>
+                        <td>{{ cls }}</td>
+                        <td>{{ "%.3f"|format(m.precision) }}</td>
+                        <td>{{ "%.3f"|format(m.recall) }}</td>
+                        <td>{{ "%.3f"|format(m['f1-score']) }}</td>
+                        <td>{{ m.support }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+    </div>
+</body>
+
+</html>

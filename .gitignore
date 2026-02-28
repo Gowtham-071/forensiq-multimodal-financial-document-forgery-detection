@@ -1,0 +1,33 @@
+# Unpublished IEEE paper
+ieee_paper.tex
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.synctex.gz
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+
+# Datasets (do not upload raw data)
+dataset/
+Main_Dataset/
+Geniune Document DS/
+Images/
+
+# IDE
+.vscode/
+
+# Local databases
+vendor_registry.db

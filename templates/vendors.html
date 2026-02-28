@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>FORENSIQ — Vendor Enrollment</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --accent: #58a6ff;
+            --green: #3fb950;
+            --red: #f85149;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        nav {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 2px;
+        }
+
+        .nav-links a {
+            color: var(--muted);
+            text-decoration: none;
+            margin-left: 1.5rem;
+            font-size: .9rem;
+            transition: color .2s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text);
+        }
+
+        .page-header {
+            padding: 2.5rem 2rem 1.5rem;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .page-header p {
+            color: var(--muted);
+            margin-top: .4rem;
+            font-size: .9rem;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 1.5rem 4rem;
+        }
+
+        .flash {
+            padding: .8rem 1.2rem;
+            border-radius: 8px;
+            font-size: .9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .flash.error {
+            background: rgba(248, 81, 73, .15);
+            border: 1px solid var(--red);
+            color: var(--red);
+        }
+
+        .flash.success {
+            background: rgba(63, 185, 80, .15);
+            border: 1px solid var(--green);
+            color: var(--green);
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 1.5rem;
+        }
+
+        @media(max-width:860px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: .82rem;
+            color: var(--muted);
+            margin-bottom: .35rem;
+            font-weight: 500;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: .65rem .9rem;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: .9rem;
+            transition: border-color .2s;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: .75rem;
+        }
+
+        .btn-enroll {
+            width: 100%;
+            padding: .85rem;
+            background: var(--accent);
+            color: #0d1117;
+            font-weight: 700;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: opacity .2s;
+        }
+
+        .btn-enroll:hover {
+            opacity: .85;
+        }
+
+        .hint {
+            font-size: .78rem;
+            color: var(--muted);
+            margin-top: .3rem;
+        }
+
+        /* Table */
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .85rem;
+        }
+
+        thead th {
+            text-align: left;
+            padding: .75rem .9rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: .75rem;
+            letter-spacing: .8px;
+        }
+
+        tbody td {
+            padding: .8rem .9rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:hover {
+            background: rgba(88, 166, 255, .04);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .gst-pill {
+            display: inline-block;
+            background: rgba(88, 166, 255, .12);
+            color: var(--accent);
+            border-radius: 4px;
+            padding: .1rem .5rem;
+            font-size: .76rem;
+            margin: .1rem;
+        }
+
+        .format-badge {
+            padding: .2rem .6rem;
+            border-radius: 20px;
+            font-size: .75rem;
+            font-weight: 600;
+        }
+
+        .fmt-indian {
+            background: rgba(63, 185, 80, .12);
+            color: var(--green);
+        }
+
+        .fmt-generic {
+            background: rgba(210, 153, 34, .12);
+            color: #d29922;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="logo">⚡ FORENSIQ</div>
+        <div class="nav-links">
+            <a href="/">Verify Bill</a>
+            <a href="/vendors" class="active">Enroll Vendor</a>
+            <a href="/history">History</a>
+            <a href="/metrics">Metrics</a>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <h1>🏢 Vendor Enrollment Registry</h1>
+        <p>Register companies with all their valid GST numbers to prevent false-positive fraud flags across multi-branch
+            businesses</p>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <div class="layout">
+            <!-- Enrollment Form -->
+            <div class="card">
+                <h2>📝 Enroll New Company</h2>
+                <form method="POST">
+                    <div class="form-group">
+                        <label>Company Name *</label>
+                        <input type="text" name="company_name" placeholder="e.g. Reliance Retail Ltd" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Valid GST / Tax-ID Numbers * <span style="color:var(--muted)">(one per line or
+                                comma-separated)</span></label>
+                        <textarea name="gst_numbers"
+                            placeholder="29AAACR5055K1ZK&#10;27AAACR5055K1ZK&#10;33AAACR5055K1ZK" required></textarea>
+                        <div class="hint">Enter one GST number per branch/state. Multiple GSTs = multiple bill books.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Bill Format</label>
+                        <select name="bill_format">
+                            <option value="Indian GST">Indian GST (15-char format)</option>
+                            <option value="Generic Invoice">Generic Invoice (Tax-ID format)</option>
+                        </select>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Min Bill Amount (₹)</label>
+                            <input type="number" name="amount_min" placeholder="500" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Max Bill Amount (₹)</label>
+                            <input type="number" name="amount_max" placeholder="200000" min="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes <span style="color:var(--muted)">(optional)</span></label>
+                        <input type="text" name="notes" placeholder="e.g. KA=29, MH=27, TN=33 branches">
+                    </div>
+                    <button type="submit" class="btn-enroll">✅ Enroll Company</button>
+                </form>
+            </div>
+
+            <!-- Enrolled Vendors Table -->
+            <div class="card">
+                <h2>🗂️ Enrolled Companies ({{ vendors|length }})</h2>
+                {% if vendors %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>GST Numbers</th>
+                                <th>Format</th>
+                                <th>Amount Range</th>
+                                <th>Enrolled</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for v in vendors %}
+                            <tr>
+                                <td>
+                                    <strong>{{ v.company_name }}</strong>
+                                    {% if v.notes %}<div style="color:var(--muted);font-size:.76rem;margin-top:.2rem">{{
+                                        v.notes }}</div>{% endif %}
+                                </td>
+                                <td>
+                                    {% for g in v.gst_list %}
+                                    <span class="gst-pill">{{ g }}</span>
+                                    {% endfor %}
+                                    <div style="color:var(--muted);font-size:.75rem;margin-top:.25rem;">{{ v.gst_count
+                                        }} GST(s)</div>
+                                </td>
+                                <td>
+                                    <span
+                                        class="format-badge {% if v.bill_format=='Indian GST' %}fmt-indian{% else %}fmt-generic{% endif %}">
+                                        {{ v.bill_format }}
+                                    </span>
+                                </td>
+                                <td style="white-space:nowrap;">
+                                    ₹{{ "{:,.0f}".format(v.amount_min) }} – ₹{{ "{:,.0f}".format(v.amount_max) }}
+                                </td>
+                                <td style="color:var(--muted);font-size:.8rem;">{{ v.enrolled_at[:10] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div style="font-size:2rem;margin-bottom:.5rem;">🏢</div>
+                    No companies enrolled yet.<br>Use the form to register your first vendor.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
