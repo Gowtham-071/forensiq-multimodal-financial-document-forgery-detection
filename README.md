@@ -12,13 +12,13 @@ FORENSIQ is a comprehensive, multi-modal fraud detection system designed to auth
 
 ## System Architecture
 
-![System Architecture](Images/Architecture.png)
+![System Architecture](./Images/Architecture.png)
 
 *The 4-stream pipeline of FORENSIQ integrating Vision, OCR, Semantic Validation, and Vendor Context.*
 
 ## Data Flow Diagram
 
-![Data Flow Diagram](Images/DFD.png)
+![Data Flow Diagram](./Images/DFD.png)
 
 ## User Interface
 
@@ -26,19 +26,19 @@ The web application provides an intuitive interface for both document verificati
 
 ### Bill Verification
 Easily upload documents for instant, multi-modal fraud analysis.
-![Verification Upload](Images/home_upload.png)
+![Verification Upload](./Images/home_upload.png)
 
 ### Vendor Enrollment
 Register known vendors with their GST numbers, expected transaction amounts, and bill formats to enhance context-aware detection.
-![Vendor Enrollment](Images/vendor_enrollment_ui.png)
+![Vendor Enrollment](./Images/vendor_enrollment_ui.png)
 
 ### Audit History
 Monitor past verifications, view verdicts, and access detailed fraud scores across all processed documents.
-![Audit History](Images/audit_history_ui.png)
+![Audit History](./Images/audit_history_ui.png)
 
 ### Validation Dashboard
 Review comprehensive system usage and validation data.
-![Validation Dashboard](Images/validation_dashboard.png)
+![Validation Dashboard](./Images/validation_dashboard.png)
 
 ## Installation & Setup
 
